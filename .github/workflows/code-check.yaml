@@ -1,0 +1,59 @@
+#  static code checks on push events
+
+name: "pre-merge code checks "
+
+# Trigger checks on pushes to feature branches or pull requests
+on:
+  workflow_call:
+
+jobs:
+  checks:
+    name: "code check"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+
+      # Format Terraform code
+      - name: "terraform fmt"
+        run: terraform fmt -check -diff -recursive .
+
+      # Provides AWS credentials to Terraform
+      # By default, Terraform checks the home directory for a .aws folder with a credential file
+      # Documentation: https://docs.aws.amazon.com/ses/latest/DeveloperGuide/create-shared-credentials-file.html
+#       - name: "Setup - Build AWS Credentials"
+#         run: |
+#           mkdir -p ~/.aws
+#           echo "[default]" > ~/.aws/credentials
+#           echo "aws_access_key_id = ${{ secrets.AWS_ACCESS_KEY_ID_INFRATEST }}" >> ~/.aws/credentials
+#           echo "aws_secret_access_key = ${{ secrets.AWS_SECRET_ACCESS_KEY_INFRATEST }}" >> ~/.aws/credentials
+#
+#       - name: Terraform Init
+#         id: init
+#         run: terraform init -backend-config=bucket=aidock-platform-service-configs-infra-test
+#
+#       - name: Terraform Validate
+#         id: validate
+#         run: terraform validate -no-color
+#
+#       # Terraform linting
+#       - name: Setup TFLint
+#         uses: terraform-linters/setup-tflint@v1
+#         with:
+#           tflint_version: latest
+#           github_token: ${{ secrets.GH_TOKEN }}
+#
+#       - name: Run TFLint
+#         run: tflint --init && tflint --module
+
+      # Static analysis of Terraform templates to spot potential security issues
+      - name: "Checkov - Security Scan"
+        id: checkov
+        uses: bridgecrewio/checkov-action@master
+        #continue-on-error: true
+        with:
+          directory: /
+          framework: terraform
+          skip_check: CKV_K8S_29
